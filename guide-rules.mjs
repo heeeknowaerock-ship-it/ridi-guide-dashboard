@@ -56,11 +56,20 @@ export function normalizeBackground(value = '') {
 
 export function normalizeKeywords(value = '') {
   return value
-    .replace(/[;；]+/g, ',')
-    .split(',')
-    .map((keyword) => keyword.trim())
-    .filter(Boolean)
-    .join(', ');
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map((line) => {
+      const replaced = line.trim().replace(/[;；]+/g, ',');
+      const hasTrailingDelimiter = /,\s*$/.test(replaced);
+      const normalizedLine = replaced
+        .split(',')
+        .map((keyword) => keyword.trim())
+        .filter(Boolean)
+        .join(', ');
+      return hasTrailingDelimiter && normalizedLine ? `${normalizedLine},` : normalizedLine;
+    })
+    .join('\n')
+    .trim();
 }
 
 export function inspectGuide(source = '') {
@@ -113,7 +122,7 @@ export function inspectGuide(source = '') {
     issues.push({
       type: 'fix',
       field: '작품 키워드',
-      message: '키워드 구분자를 쉼표(,)로 통일하고 불필요한 공백을 정리했습니다.',
+      message: '기존 줄바꿈은 유지하고 키워드 구분자만 쉼표(,)로 통일했습니다.',
       before: keywords,
       after: fixedKeywords,
     });

@@ -42,4 +42,25 @@ assert.equal(partialBl.mode, 'bl');
 assert.equal(partialBl.issues.some((issue) => issue.field === '수' && issue.type === 'error'), true);
 assert.equal(partialBl.issues.some((issue) => issue.field === '남자주인공' || issue.field === '여자주인공'), false);
 
-console.log('PASS: 리디 가이드 로맨스·BL 규칙 테스트 완료');
+const multilineKeywords = '집착공;\n미인수;\n금단의관계; 현대물;\n\n재회물;\n절륜공';
+assert.equal(
+  normalizeKeywords(multilineKeywords),
+  '집착공,\n미인수,\n금단의관계, 현대물,\n\n재회물,\n절륜공',
+);
+
+const multilineGuide = inspectGuide(`■ 접수양식
+* 배경/분야: 현대물 / 금단의관계
+* 작품 키워드: 집착공; 미인수
+금단의관계; 현대물
+
+재회물; 절륜공
+* 공: 강태현
+* 수: 윤서진
+* 이럴 때 보세요: 두 사람의 관계가 보고 싶을 때
+* 공감 글귀: 첫 번째 문장
+
+두 번째 문장`);
+assert.match(multilineGuide.output, /\* 작품 키워드: 집착공, 미인수\n금단의관계, 현대물\n\n재회물, 절륜공/);
+assert.match(multilineGuide.output, /\* 공감 글귀: 첫 번째 문장\n\n두 번째 문장/);
+
+console.log('PASS: 리디 가이드 로맨스·BL·줄바꿈 보존 규칙 테스트 완료');
