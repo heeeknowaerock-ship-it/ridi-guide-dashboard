@@ -16,4 +16,30 @@ assert.equal(result.issues.some((issue) => issue.field === '양식 외 문구'),
 const missing = inspectGuide('* 배경/분야: 현대물');
 assert.equal(missing.issues.filter((issue) => issue.type === 'error').length, 5);
 
-console.log('PASS: 리디 가이드 규칙 테스트 9개 검증 완료');
+const blSample = `■ 접수양식
+* 배경/분야: 현대물 / 금단의관계
+* 작품 키워드: 집착공; 미인수
+* 남자주인공: 삭제 대상 남주
+* 여자주인공: 삭제 대상 여주
+* 공: 강태현
+* 수: 윤서진
+* 이럴 때 보세요: 집착공과 미인수가 보고 싶을 때
+* 공감 글귀: 너를 놓치지 않아.`;
+const blResult = inspectGuide(blSample);
+assert.equal(blResult.mode, 'bl');
+assert.match(blResult.output, /\* 공: 강태현/);
+assert.match(blResult.output, /\* 수: 윤서진/);
+assert.doesNotMatch(blResult.output, /남자주인공|여자주인공|삭제 대상/);
+assert.equal(blResult.issues.some((issue) => issue.field === '남자주인공' && issue.type === 'error'), false);
+assert.equal(blResult.issues.some((issue) => issue.field === '여자주인공' && issue.type === 'error'), false);
+
+const partialBl = inspectGuide(`* 배경/분야: 현대물
+* 작품 키워드: 집착공
+* 공: 강태현
+* 이럴 때 보세요: BL이 보고 싶을 때
+* 공감 글귀: 너를 놓치지 않아.`);
+assert.equal(partialBl.mode, 'bl');
+assert.equal(partialBl.issues.some((issue) => issue.field === '수' && issue.type === 'error'), true);
+assert.equal(partialBl.issues.some((issue) => issue.field === '남자주인공' || issue.field === '여자주인공'), false);
+
+console.log('PASS: 리디 가이드 로맨스·BL 규칙 테스트 완료');

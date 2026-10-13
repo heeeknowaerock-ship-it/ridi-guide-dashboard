@@ -1,10 +1,12 @@
+export const COMMON_PREFIX_FIELDS = ['배경/분야', '작품 키워드'];
+export const ROMANCE_CHARACTER_FIELDS = ['남자주인공', '여자주인공'];
+export const BL_CHARACTER_FIELDS = ['공', '수'];
+export const COMMON_SUFFIX_FIELDS = ['이럴 때 보세요', '공감 글귀'];
 export const FIELDS = [
-  '배경/분야',
-  '작품 키워드',
-  '남자주인공',
-  '여자주인공',
-  '이럴 때 보세요',
-  '공감 글귀',
+  ...COMMON_PREFIX_FIELDS,
+  ...ROMANCE_CHARACTER_FIELDS,
+  ...BL_CHARACTER_FIELDS,
+  ...COMMON_SUFFIX_FIELDS,
 ];
 
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -65,8 +67,11 @@ export function inspectGuide(source = '') {
   const parsed = parseGuide(source);
   const corrected = { ...parsed.values };
   const issues = [];
+  const mode = parsed.found.has('공') || parsed.found.has('수') ? 'bl' : 'romance';
+  const characterFields = mode === 'bl' ? BL_CHARACTER_FIELDS : ROMANCE_CHARACTER_FIELDS;
+  const outputFields = [...COMMON_PREFIX_FIELDS, ...characterFields, ...COMMON_SUFFIX_FIELDS];
 
-  for (const field of FIELDS) {
+  for (const field of outputFields) {
     if (!parsed.found.has(field)) {
       issues.push({ type: 'error', field, message: `필수 항목 ‘${field}’이 누락되었습니다.` });
     } else if (!parsed.values[field].trim()) {
@@ -76,6 +81,17 @@ export function inspectGuide(source = '') {
 
   for (const field of parsed.duplicateFields) {
     issues.push({ type: 'warning', field, message: `‘${field}’ 항목이 두 번 이상 작성되었습니다.` });
+  }
+
+  const romanceFieldsInBl = ROMANCE_CHARACTER_FIELDS.filter((field) => parsed.found.has(field));
+  if (mode === 'bl' && romanceFieldsInBl.length) {
+    issues.push({
+      type: 'fix',
+      field: '주인공 항목',
+      message: '공/수 항목이 있어 BL 양식으로 판단하고 남자주인공/여자주인공 항목을 삭제했습니다.',
+      before: romanceFieldsInBl.map((field) => `${field}: ${parsed.values[field]}`).join('\n'),
+      after: BL_CHARACTER_FIELDS.map((field) => `${field}: ${corrected[field]}`).join('\n'),
+    });
   }
 
   const background = parsed.values['배경/분야'];
@@ -113,6 +129,6 @@ export function inspectGuide(source = '') {
     });
   }
 
-  const output = ['■ 접수양식', ...FIELDS.map((field) => `* ${field}: ${corrected[field].trim()}`)].join('\n');
-  return { ...parsed, corrected, issues, output };
+  const output = ['■ 접수양식', ...outputFields.map((field) => `* ${field}: ${corrected[field].trim()}`)].join('\n');
+  return { ...parsed, corrected, issues, output, outputFields, mode };
 }
